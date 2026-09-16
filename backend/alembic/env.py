@@ -5,7 +5,12 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.config import settings
-from app.models.documents import Base, Document
+from app.database import Base
+from app.models.document import Document
+from app.models.entity import Entity
+from app.models.document_entity import DocumentEntity
+from app.models.event import Event
+from app.models.event_evidence import EventEvidence
 
 target_metadata=Base.metadata
 

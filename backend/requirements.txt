@@ -4,3 +4,6 @@ sqlalchemy>=2.0
 psycopg2-binary
 alembic
 pydantic-settings
+feedparser #turns the RSS feed into Python objects we can work with.
+beautifulsoup4 #parses HTML content and extracts text.
+google-genai

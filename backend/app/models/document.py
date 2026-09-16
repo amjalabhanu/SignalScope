@@ -2,11 +2,10 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, String, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
-class Base(DeclarativeBase):
-    pass
+from app.database import Base
 
 class Document(Base):
     __tablename__="documents"
@@ -25,6 +24,11 @@ class Document(Base):
         String,
         unique=True,
         index=True,
+    )
+    processing_status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="pending",
     )
     published_at: Mapped[datetime]=mapped_column(DateTime(timezone=True))
     fetched_at: Mapped[datetime]=mapped_column(
