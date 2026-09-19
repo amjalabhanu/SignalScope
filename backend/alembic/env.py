@@ -11,6 +11,7 @@ from app.models.entity import Entity
 from app.models.document_entity import DocumentEntity
 from app.models.event import Event
 from app.models.event_evidence import EventEvidence
+from app.models.entity_attribute_history import EntityAttributeHistory
 
 target_metadata=Base.metadata
 

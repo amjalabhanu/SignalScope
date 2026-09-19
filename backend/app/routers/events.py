@@ -7,11 +7,12 @@ from app.models.event import Event
 from app.models.entity import Entity
 from app.models.event_evidence import EventEvidence
 from app.models.document import Document
+from app.schemas.event import EventResponse
 
 router = APIRouter(prefix="/events", tags=["events"])
 
 
-@router.get("")
+@router.get("", response_model=list[EventResponse])
 def get_events(db: Session = Depends(get_db)):
     statement = (
         select(Event, Entity)
@@ -53,7 +54,7 @@ def get_events(db: Session = Depends(get_db)):
                 "name": entity.name,
                 "type": entity.type,
             },
-            "summary": event.ai_summary,
+            "ai_summary": event.ai_summary,
             "detected_at": event.detected_at,
             "evidence": evidence,
         })

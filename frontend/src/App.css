@@ -30,12 +30,25 @@ h1 {
 
 .event-type {
   display: inline-block;
-  background: #eef2ff;
-  color: #4338ca;
   padding: 5px 10px;
   border-radius: 6px;
   font-size: 13px;
   margin-bottom: 12px;
+}
+
+.event-type-product-launch {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.event-type-price-change {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.event-type-default {
+  background: #f3f4f6;
+  color: #374151;
 }
 
 .summary {

@@ -40,6 +40,10 @@ class Entity(Base):
         server_default="[]",
         nullable=False,
     )
+    ticker_symbol: Mapped[str | None] = mapped_column(
+        String,
+        nullable=True,
+    )
 
     # Time when this entity was first created.
     created_at: Mapped[datetime] = mapped_column(

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.event_evidence import EventEvidence
 from app.models.document import Document
+from app.schemas.event_evidence import EventEvidenceResponse
 
 router = APIRouter(
     prefix="/event-evidence",
@@ -12,7 +13,7 @@ router = APIRouter(
 )
 
 
-@router.get("")
+@router.get("", response_model=list[EventEvidenceResponse])
 def get_event_evidence(db: Session = Depends(get_db)):
     statement = (
         select(EventEvidence, Document)

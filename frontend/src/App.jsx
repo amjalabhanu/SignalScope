@@ -1,18 +1,28 @@
 import { useEffect, useState } from "react";
+import { getEvents, getEntities } from "./api";
 import "./App.css";
+
+// Defines how known event types should appear in the UI.
+// Keeping this in one place makes it easy to add new event types later.
+const EVENT_TYPE_STYLES = {
+  product_launch: {
+    label: "Product Launch",
+    className: "event-type-product-launch",
+  },
+  price_change: {
+    label: "Price Change",
+    className: "event-type-price-change",
+  },
+};
 
 function App() {
   const [events, setEvents] = useState([]);
   const [entities, setEntities] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:8000/events")
-      .then((response) => response.json())
-      .then((data) => setEvents(data));
+    getEvents().then((data) => setEvents(data));
 
-    fetch("http://localhost:8000/entities")
-      .then((response) => response.json())
-      .then((data) => setEntities(data));
+    getEntities().then((data) => setEntities(data));
   }, []);
 
   return (
@@ -38,43 +48,54 @@ function App() {
       {events.length === 0 ? (
         <p>No intelligence detected yet.</p>
       ) : (
-        events.map((event) => (
-          <div className="event-card" key={event.id}>
-            <div className="event-type">
-              {event.event_type}
-            </div>
+        events.map((event) => {
+          const eventType =
+            EVENT_TYPE_STYLES[event.event_type] || {
+              label: event.event_type,
+              className: "event-type-default",
+            };
 
-            <h3>{event.entity.name}</h3>
+          return (
+            <div className="event-card" key={event.id}>
+              <div className={`event-type ${eventType.className}`}>
+                {eventType.label}
+              </div>
 
-            <p className="summary">
-              {event.summary}
-            </p>
+              <h3>{event.entity.name}</h3>
 
-            <div className="evidence">
-              <h4>Evidence</h4>
+              <p className="summary">
+                {event.ai_summary}
+              </p>
 
-              {event.evidence.map((document) => (
-                <div className="evidence-item" key={document.url}>
-                  <div className="evidence-title">
-                    {document.title}
-                  </div>
+              <div className="evidence">
+                <h4>Evidence</h4>
 
-                  <div className="evidence-source">
-                    {document.source}
-                  </div>
-
-                  <a
-                    href={document.url}
-                    target="_blank"
-                    rel="noreferrer"
+                {event.evidence.map((document) => (
+                  <div
+                    className="evidence-item"
+                    key={document.url}
                   >
-                    View source
-                  </a>
-                </div>
-              ))}
+                    <div className="evidence-title">
+                      {document.title}
+                    </div>
+
+                    <div className="evidence-source">
+                      {document.source}
+                    </div>
+
+                    <a
+                      href={document.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View source
+                    </a>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))
+          );
+        })
       )}
     </div>
   );

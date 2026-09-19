@@ -4,11 +4,12 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.entity import Entity
+from app.schemas.entity import EntityResponse
 
 router = APIRouter(prefix="/entities", tags=["entities"])
 
 
-@router.get("")
+@router.get("",response_model=list[EntityResponse])
 def get_entities(db: Session = Depends(get_db)):
     statement = (
         select(Entity)
