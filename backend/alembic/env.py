@@ -12,6 +12,8 @@ from app.models.document_entity import DocumentEntity
 from app.models.event import Event
 from app.models.event_evidence import EventEvidence
 from app.models.entity_attribute_history import EntityAttributeHistory
+from app.models.user import User
+from app.models.subscription import Subscription
 
 target_metadata=Base.metadata
 
