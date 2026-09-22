@@ -1,5 +1,9 @@
+
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { getEvents, getEntities } from "./api";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import { useAuth } from "./auth/useAuth";
 
 /**
  * Design notes
@@ -298,6 +302,8 @@ function SkeletonCard() {
 }
 
 function App() {
+  const { isAuthenticated, loading } = useAuth();
+  const [authScreen, setAuthScreen] = useState("login");
   const [events, setEvents] = useState([]);
   const [entities, setEntities] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
@@ -411,6 +417,25 @@ function App() {
   };
 
   const selectedEntityName = entities.find((e) => e.id === selectedEntityId)?.name;
+  if (loading) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#f5f7fa]">
+      <p className="text-sm text-[#687386]">Restoring your session...</p>
+    </main>
+  );
+}
+
+if (!isAuthenticated) {
+  if (authScreen === "signup") {
+    return (
+      <SignupPage onSwitchToLogin={() => setAuthScreen("login")} />
+    );
+  }
+
+  return (
+    <LoginPage onSwitchToSignup={() => setAuthScreen("signup")} />
+  );
+}
 
   return (
     <div className="min-h-screen font-['IBM_Plex_Sans']" style={{ background: PAPER, color: INK }}>
