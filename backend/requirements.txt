@@ -8,3 +8,8 @@ feedparser #turns the RSS feed into Python objects we can work with.
 beautifulsoup4 #parses HTML content and extracts text.
 google-genai
 requests
+pwdlib[argon2]
+PyJWT
+email-validator
+pytest
+httpx
