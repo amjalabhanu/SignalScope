@@ -1,21 +1,32 @@
 const API_BASE_URL = "http://localhost:8000";
 
-export async function getEvents() {
-  const response = await fetch(`${API_BASE_URL}/events`);
+async function fetchJson(endpoint, resourceName) {
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`);
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch events");
+    if (!response.ok) {
+      throw new Error(
+        `Unable to load ${resourceName}. Server returned ${response.status}.`
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(
+        `Unable to connect to the backend while loading ${resourceName}.`,
+        {cause: error}
+      );
+    }
+
+    throw error;
   }
-
-  return response.json();
 }
 
-export async function getEntities() {
-  const response = await fetch(`${API_BASE_URL}/entities`);
+export function getEvents() {
+  return fetchJson("/events", "events");
+}
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch entities");
-  }
-
-  return response.json();
+export function getEntities() {
+  return fetchJson("/entities", "entities");
 }
