@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.database import SessionLocal
 from app.models.document import Document
@@ -24,7 +25,14 @@ def store_documents(documents):
 
             document = Document(**document_data)
 
-            db.add(document)
+            try:
+                with db.begin_nested():
+                    db.add(document)
+                    db.flush()
+            except IntegrityError:
+                skipped += 1
+                continue
+
             inserted += 1
 
         db.commit()

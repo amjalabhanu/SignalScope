@@ -4,6 +4,7 @@ import logging
 from google import genai
 
 from app.config import settings
+from app.services.event_summary import normalize_event_summary
 
 
 logger = logging.getLogger(__name__)
@@ -115,15 +116,16 @@ Document:
 
     summary = result.get("summary")
 
-    if not isinstance(summary, str) or not summary.strip():
+    try:
+        normalized_summary = normalize_event_summary(summary)
+    except ValueError:
         logger.warning(
             "Gemini detected a product launch but returned "
             "an invalid summary."
         )
         return None
-
     return {
         "is_product_launch": True,
         "product_entity_name": product_entity_name,
-        "summary": summary.strip(),
+        "summary": normalized_summary,
     }

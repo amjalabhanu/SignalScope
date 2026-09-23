@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, func
+from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -10,6 +10,13 @@ from app.database import Base
 
 class EventEvidence(Base):
     __tablename__ = "event_evidence"
+    __table_args__ = (
+        UniqueConstraint(
+            "event_id",
+            "document_id",
+            name="uq_event_evidence_event_document",
+        ),
+    )
 
     # Unique identifier for this evidence relationship.
     id: Mapped[uuid.UUID] = mapped_column(

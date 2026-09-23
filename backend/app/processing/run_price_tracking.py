@@ -10,6 +10,7 @@ from app.ingestion.finnhub_connector import fetch_quote
 from app.services.normalize_stock_quote import normalize_stock_quote
 from app.services.detect_price_change import detect_price_change
 from app.services.match_or_create_event import match_or_create_event
+from app.services.event_summary import normalize_event_summary
 
 
 def run():
@@ -89,10 +90,12 @@ def run():
                 print("No price change event.")
                 continue
 
-            summary = (
-                f"{entity.name} price changed from "
-                f"{change['old_price']} to "
-                f"{change['new_price']}."
+            summary = normalize_event_summary(
+                (
+                    f"{entity.name} price changed from "
+                    f"{change['old_price']} to "
+                    f"{change['new_price']}."
+                )
             )
 
             # Reuse the existing event matching logic.
