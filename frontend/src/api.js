@@ -173,3 +173,48 @@ export function getRecommendations({ page = 1, limit = 20, token }) {
     }
   );
 }
+
+export function getEntityIntelligence({
+  entityId,
+  page = 1,
+  limit = 20,
+  token,
+}) {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  return fetchJson(
+    `/entities/${entityId}/intelligence?${params.toString()}`,
+    "entity intelligence",
+    {
+      headers: jsonHeaders(token),
+    }
+  );
+}
+
+export function getEntityEvents({
+  entityId,
+  page = 1,
+  limit = 20,
+  eventType,
+  token,
+}) {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  if (eventType) {
+    params.set("event_type", eventType);
+  }
+
+  return fetchJson(
+    `/entities/${entityId}/events?${params.toString()}`,
+    "entity events",
+    {
+      headers: jsonHeaders(token),
+    }
+  );
+}
