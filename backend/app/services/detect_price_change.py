@@ -24,7 +24,10 @@ def detect_price_change(
             EntityAttributeHistory.entity_id == entity_id,
             EntityAttributeHistory.attribute_name == "price",
         )
-        .order_by(EntityAttributeHistory.observed_at.desc())
+        .order_by(
+            EntityAttributeHistory.observed_at.desc(),
+            EntityAttributeHistory.id.desc(),
+        )
         .limit(1)
     )
 
