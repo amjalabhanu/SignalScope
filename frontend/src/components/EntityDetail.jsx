@@ -11,6 +11,11 @@ function EntityDetail({
   onToggleSubscription,
   onClose,
   onRetry,
+  relatedEntities = [],
+  relatedLoading = false,
+  relatedError = null,
+  onRetryRelated,
+  onSelectRelatedEntity,
 }) {
   if (loading) {
     return (
@@ -130,7 +135,119 @@ function EntityDetail({
           </p>
         </div>
       </div>
+            <div className="mx-7 mb-7 border-t pt-5" style={{ borderColor: LINE }}>
+        <div>
+          <p
+            className="font-mono text-[10px] font-bold uppercase tracking-widest"
+            style={{ color: SIGNAL }}
+          >
+            Related intelligence
+          </p>
+
+          <p
+            className="mt-1 font-mono text-[10px]"
+            style={{ color: TEXT_DIM }}
+          >
+            Entities connected through shared documents.
+          </p>
+        </div>
+
+        {relatedLoading ? (
+          <div className="mt-4 space-y-2">
+            <div
+              className="h-16 animate-pulse rounded"
+              style={{ background: LINE }}
+            />
+            <div
+              className="h-16 animate-pulse rounded"
+              style={{ background: LINE }}
+            />
+          </div>
+        ) : relatedError ? (
+          <div className="mt-4">
+            <ErrorPanel
+              message="Unable to load related entities."
+              onRetry={onRetryRelated}
+            />
+          </div>
+        ) : relatedEntities.length === 0 ? (
+          <p
+            className="mt-4 font-mono text-xs"
+            style={{ color: TEXT_DIM }}
+          >
+            No related entities found yet.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-2">
+            {relatedEntities.map((relatedEntity) => (
+              <div
+                key={relatedEntity.id}
+                className="flex flex-col gap-3 border p-3 sm:flex-row sm:items-center sm:justify-between"
+                style={{
+                  borderColor: LINE,
+                  background: "rgba(255,255,255,0.02)",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => onSelectRelatedEntity(relatedEntity.id)}
+                  className="min-w-0 text-left"
+                >
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span
+                      className="font-['Fraunces'] text-base font-bold"
+                      style={{ color: TEXT }}
+                    >
+                      {relatedEntity.name}
+                    </span>
+
+                    {relatedEntity.type && (
+                      <span
+                        className="font-mono text-[10px] uppercase tracking-wide"
+                        style={{ color: TEXT_DIM }}
+                      >
+                        {relatedEntity.type}
+                      </span>
+                    )}
+
+                    {relatedEntity.ticker_symbol && (
+                      <span
+                        className="font-mono text-[10px] font-bold"
+                        style={{ color: SIGNAL }}
+                      >
+                        {relatedEntity.ticker_symbol}
+                      </span>
+                    )}
+                  </div>
+
+                  {relatedEntity.reason && (
+                    <p
+                      className="mt-1 font-mono text-[10px]"
+                      style={{ color: TEXT_DIM }}
+                    >
+                      {relatedEntity.reason}
+                    </p>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectRelatedEntity(relatedEntity.id)}
+                  className="shrink-0 border px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-wide"
+                  style={{
+                    borderColor: LINE_BRIGHT,
+                    color: TEXT_DIM,
+                  }}
+                >
+                  View
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </article>
+    
   );
 }
 
