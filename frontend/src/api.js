@@ -133,3 +133,18 @@ export function unfollowEntity(entityId, token) {
     headers: jsonHeaders(token),
   });
 }
+
+export function getFeed({
+  page = 1,
+  limit = 20,
+  token,
+}) {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  return fetchJson(`/feed?${params.toString()}`, "feed", {
+    headers: jsonHeaders(token),
+  });
+}

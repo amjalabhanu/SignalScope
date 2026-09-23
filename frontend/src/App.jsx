@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { getEvents, getEntities, searchEntities, getEntity, followEntity, unfollowEntity, getSubscriptions } from "./api";
+import { getEvents, getEntities, searchEntities, getEntity, followEntity, unfollowEntity, getSubscriptions, getFeed } from "./api";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import { useAuth } from "./auth/useAuth";
@@ -31,11 +31,17 @@ function App() {
   const { token, isAuthenticated, loading, logout } = useAuth();
   const [authScreen, setAuthScreen] = useState("login");
   const [events, setEvents] = useState([]);
+  const [feedPage, setFeedPage] = useState(1);
+  const [exploreEvents, setExploreEvents] = useState([]);
+  const [exploreLoading, setExploreLoading] = useState(false);
+  const [exploreError, setExploreError] = useState(null);
+  const [feedHasMore, setFeedHasMore] = useState(false);
+  const [feedLoadingMore, setFeedLoadingMore] = useState(false);
   const [entities, setEntities] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(true);
   const [subscriptionsError, setSubscriptionsError] = useState(null);
-  const [showHome, setShowHome] = useState(true);
+  const [activeView, setActiveView] = useState("home");
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -106,18 +112,70 @@ function App() {
     };
   }, [selectedEntityId, token]);
 
-  const loadEvents = useCallback(async () => {
+  const loadFeed = useCallback(async () => {
     setEventsLoading(true);
     setEventsError(null);
+    setFeedPage(1);
+
     try {
-      const data = await getEvents();
-      setEvents(Array.isArray(data) ? data : []);
+      const data = await getFeed({
+        page: 1,
+        limit: 20,
+        token,
+      });
+
+      setEvents(Array.isArray(data?.items) ? data.items : []);
+      setFeedHasMore(Boolean(data?.has_more));
     } catch (error) {
       setEventsError(error);
+      setEvents([]);
+      setFeedHasMore(false);
     } finally {
       setEventsLoading(false);
     }
+  }, [token]);
+  const loadExploreEvents = useCallback(async () => {
+    setExploreLoading(true);
+    setExploreError(null);
+
+    try {
+      const data = await getEvents();
+
+      setExploreEvents(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setExploreError(error);
+      setExploreEvents([]);
+    } finally {
+      setExploreLoading(false);
+    }
   }, []);
+  const loadMoreFeed = useCallback(async () => {
+    if (!token || feedLoadingMore || !feedHasMore) {
+      return;
+    }
+
+    setFeedLoadingMore(true);
+
+    try {
+      const nextPage = feedPage + 1;
+
+      const data = await getFeed({
+        page: nextPage,
+        limit: 20,
+        token,
+      });
+
+      const newItems = Array.isArray(data?.items) ? data.items : [];
+
+      setEvents((currentEvents) => [...currentEvents, ...newItems]);
+      setFeedPage(data?.page ?? nextPage);
+      setFeedHasMore(Boolean(data?.has_more));
+    } catch (error) {
+      setEventsError(error);
+    } finally {
+      setFeedLoadingMore(false);
+    }
+  }, [token, feedPage, feedHasMore, feedLoadingMore]);
 
   const loadSubscriptions = useCallback(async () => {
     if (!token) {
@@ -168,38 +226,64 @@ function App() {
 
   useEffect(() => {
     let cancelled = false;
+
     async function loadInitialData() {
-      const [eventsResult, entitiesResult, subscriptionsResult] = await Promise.allSettled([
-        getEvents(),
-        getEntities(),
-        getSubscriptions(token),
-      ]);
+      const [feedResult, entitiesResult, subscriptionsResult] =
+        await Promise.allSettled([
+          getFeed({
+            page: 1,
+            limit: 20,
+            token,
+          }),
+          getEntities(),
+          getSubscriptions(token),
+        ]);
+
+      if (cancelled) return;
 
       if (subscriptionsResult.status === "fulfilled") {
-        setSubscriptions(Array.isArray(subscriptionsResult.value) ? subscriptionsResult.value : []);
+        setSubscriptions(
+          Array.isArray(subscriptionsResult.value)
+            ? subscriptionsResult.value
+            : []
+        );
       } else {
         setSubscriptionsError(subscriptionsResult.reason);
       }
-      setSubscriptionsLoading(false);
-      if (cancelled) return;
 
-      if (eventsResult.status === "fulfilled") {
-        setEvents(Array.isArray(eventsResult.value) ? eventsResult.value : []);
+      setSubscriptionsLoading(false);
+
+      if (feedResult.status === "fulfilled") {
+        const feed = feedResult.value;
+
+        setEvents(Array.isArray(feed?.items) ? feed.items : []);
+        setFeedPage(feed?.page ?? 1);
+        setFeedHasMore(Boolean(feed?.has_more));
+        setEventsError(null);
       } else {
-        setEventsError(eventsResult.reason);
+        setEvents([]);
+        setFeedHasMore(false);
+        setEventsError(feedResult.reason);
       }
 
       if (entitiesResult.status === "fulfilled") {
-        setEntities(Array.isArray(entitiesResult.value) ? entitiesResult.value : []);
+        setEntities(
+          Array.isArray(entitiesResult.value)
+            ? entitiesResult.value
+            : []
+        );
       }
+
       setEventsLoading(false);
     }
+
     loadInitialData();
+
     return () => {
       cancelled = true;
     };
   }, [token]);
-
+  
   const eventCountByEntity = useMemo(() => {
     const counts = {};
     events.forEach((event) => {
@@ -269,12 +353,19 @@ function App() {
       <Header
         entityCount={entities.length}
         eventCount={events.length}
-        showHome={showHome}
+        activeView={activeView}
         onHomeClick={() => {
-          setShowHome(true);
+          setActiveView("home");
           setSelectedEntityId(null);
           setSelectedEntity(null);
           setSubscriptionError(null);
+        }}
+        onExploreClick={() => {
+          setActiveView("explore");
+          setSelectedEntityId(null);
+          setSelectedEntity(null);
+          setSubscriptionError(null);
+          loadExploreEvents();
         }}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -283,7 +374,7 @@ function App() {
         entitySearchError={entitySearchError}
         entitySearchResults={entitySearchResults}
         onSelectSearchResult={(entityId) => {
-          setShowHome(false);
+          setActiveView("home");
           setSelectedEntityId(entityId);
           setSearchQuery("");
         }}
@@ -299,7 +390,7 @@ function App() {
           error={subscriptionsError}
           onRetry={loadSubscriptions}
           onSelectEntity={(entityId) => {
-            setShowHome(false);
+            setActiveView("home");
             setSelectedEntityId(selectedEntityId === entityId ? null : entityId);
           }}
           onClearSelection={() => setSelectedEntityId(null)}
@@ -344,29 +435,56 @@ function App() {
             </div>
           )}
 
-          {eventsError && !eventsLoading ? (
-            <FeedList events={[]} loading={false} error={eventsError} onRetry={loadEvents} />
-          ) : events.length === 0 && !eventsLoading ? (
-            <EmptyState
-              title="No signals yet"
-              description="SignalScope hasn't detected anything from your sources. New signals will appear here as soon as they're found."
-            />
-          ) : filteredEvents.length === 0 && !eventsLoading ? (
-            <EmptyState
-              title="Nothing matches"
-              description="Try a different search term or clear your filters."
-              actionLabel="Clear filters"
-              onAction={clearFilters}
-            />
-          ) : (
-            <FeedList
-              events={filteredEvents}
-              loading={eventsLoading}
-              error={null}
-              onRetry={loadEvents}
-              onEntityClick={setSelectedEntityId}
-            />
-          )}
+         
+          {activeView === "explore" ? (
+  exploreError && !exploreLoading ? (
+    <FeedList
+      events={[]}
+      loading={false}
+      error={exploreError}
+      onRetry={loadExploreEvents}
+      onEntityClick={setSelectedEntityId}
+    />
+  ) : (
+    <FeedList
+      events={exploreEvents}
+      loading={exploreLoading}
+      error={null}
+      onEntityClick={setSelectedEntityId}
+    />
+  )
+) : eventsError && !eventsLoading ? (
+  <FeedList
+    events={[]}
+    loading={false}
+    error={eventsError}
+    onRetry={loadFeed}
+    onEntityClick={setSelectedEntityId}
+  />
+) : events.length === 0 && !eventsLoading ? (
+  <EmptyState
+    title="No signals yet"
+    description="SignalScope hasn't detected anything from your sources. New signals will appear here as soon as they're found."
+  />
+) : filteredEvents.length === 0 && !eventsLoading ? (
+  <EmptyState
+    title="Nothing matches"
+    description="Try a different search term or clear your filters."
+    actionLabel="Clear filters"
+    onAction={clearFilters}
+  />
+) : (
+  <FeedList
+    events={filteredEvents}
+    loading={eventsLoading}
+    error={null}
+    hasMore={feedHasMore}
+    loadingMore={feedLoadingMore}
+    onRetry={loadFeed}
+    onLoadMore={loadMoreFeed}
+    onEntityClick={setSelectedEntityId}
+  />
+)}
         </main>
       </div>
     </div>
