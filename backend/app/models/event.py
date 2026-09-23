@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -10,6 +10,14 @@ from app.database import Base
 
 class Event(Base):
     __tablename__ = "events"
+    __table_args__ = (
+        Index(
+            "ix_events_entity_type_detected_at",
+            "primary_entity_id",
+            "event_type",
+            "detected_at",
+        ),
+    )
 
     # Unique identifier for this event.
     id: Mapped[uuid.UUID] = mapped_column(
