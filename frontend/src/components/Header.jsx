@@ -81,6 +81,7 @@ function Header({
     entitySearchError,
     entitySearchResults,
     onSelectSearchResult,
+    onLogout,
 }) {
     return (
         <header className="sticky top-0 z-10" style={{ background: PANEL, borderBottom: `1px solid ${LINE}` }}>
