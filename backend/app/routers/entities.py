@@ -10,6 +10,9 @@ from app.models.entity import Entity
 from app.models.subscription import Subscription
 from app.models.user import User
 from app.schemas.entity import EntityResponse, EntitySearchResponse
+from app.models.document import Document
+from app.models.document_entity import DocumentEntity
+from app.schemas.related import RelatedEntityResponse
 
 
 router = APIRouter(prefix="/entities", tags=["entities"])
@@ -115,6 +118,59 @@ def search_entities(
         "total": total,
     }
 
+@router.get(
+    "/{entity_id}/related",
+    response_model=RelatedEntityResponse,
+)
+def get_related_entities(
+    entity_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    entity = db.get(Entity, entity_id)
+
+    if entity is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Entity not found",
+        )
+
+    related_statement = (
+        select(Entity)
+        .join(
+            DocumentEntity,
+            DocumentEntity.entity_id == Entity.id,
+        )
+        .join(
+            Document,
+            Document.id == DocumentEntity.document_id,
+        )
+        .where(
+            Document.id.in_(
+                select(DocumentEntity.document_id).where(
+                    DocumentEntity.entity_id == entity_id,
+                )
+            ),
+            Entity.id != entity_id,
+        )
+        .distinct()
+        .order_by(Entity.name.asc())
+    )
+
+    related_entities = db.scalars(related_statement).all()
+
+    return {
+        "items": [
+            {
+                "id": related_entity.id,
+                "name": related_entity.name,
+                "type": related_entity.type,
+                "ticker_symbol": related_entity.ticker_symbol,
+                "reason": "Shares documents with this entity",
+            }
+            for related_entity in related_entities
+        ]
+    }
 
 @router.get("/{entity_id}", response_model=EntityResponse)
 def get_entity(
