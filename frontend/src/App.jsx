@@ -318,9 +318,7 @@ function App() {
   const [subscriptionsError, setSubscriptionsError] = useState(null);
   const [showHome, setShowHome] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
-  const [entitiesLoading, setEntitiesLoading] = useState(true);
   const [eventsError, setEventsError] = useState(null);
-  const [entitiesError, setEntitiesError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [entitySearchResults, setEntitySearchResults] = useState([]);
   const [entitySearchLoading, setEntitySearchLoading] = useState(false);
@@ -336,10 +334,7 @@ function App() {
   useEffect(() => {
     const query = searchQuery.trim();
 
-    if (!query) {
-      setEntitySearchResults([]);
-      setEntitySearchError(null);
-      setEntitySearchLoading(false);
+    if (!query || !token) {
       return undefined;
     }
 
@@ -385,10 +380,7 @@ function App() {
   }, [searchQuery, token]);
   useEffect(() => {
     if (!selectedEntityId || !token) {
-      setSelectedEntity(null);
-      setSelectedEntityError(null);
-      setSelectedEntityLoading(false);
-      return undefined;
+    return undefined;
     }
 
     let cancelled = false;
@@ -470,18 +462,6 @@ function App() {
     }
   }, []);
 
-  const loadEntities = useCallback(async () => {
-    setEntitiesLoading(true);
-    setEntitiesError(null);
-    try {
-      const data = await getEntities();
-      setEntities(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setEntitiesError(error);
-    } finally {
-      setEntitiesLoading(false);
-    }
-  }, []);
   const loadSubscriptions = useCallback(async () => {
     if (!token) {
       setSubscriptions([]);
@@ -532,12 +512,8 @@ function App() {
 
       if (entitiesResult.status === "fulfilled") {
         setEntities(Array.isArray(entitiesResult.value) ? entitiesResult.value : []);
-      } else {
-        setEntitiesError(entitiesResult.reason);
-      }
-
+      } 
       setEventsLoading(false);
-      setEntitiesLoading(false);
     }
     loadInitialData();
     return () => {
