@@ -9,7 +9,7 @@ import {
   TEXT_DIM,
   MUTED,
   SIGNAL,
-  VERIFIED,
+  
 } from "../constants/theme";
 
 const AUTO_SCROLL_SPEED = 0.35; // px/frame — deliberately subtle, not marquee-fast
@@ -71,7 +71,6 @@ function useAutoScroll(containerRef, paused, enabled) {
       cancelAnimationFrame(frameId);
       reducedMotionQuery.removeEventListener?.("change", handleReducedMotionChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef, paused, enabled]);
 }
 

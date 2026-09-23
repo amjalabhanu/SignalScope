@@ -337,8 +337,44 @@ function App() {
     }
   };
   useEffect(() => {
-    loadRecommendations();
-  }, [loadRecommendations]);
+  if (!token) return undefined;
+
+  let cancelled = false;
+
+  async function fetchRecommendations() {
+    setRecommendationsLoading(true);
+    setRecommendationsError(null);
+
+    try {
+      const data = await getRecommendations({
+        page: 1,
+        limit: 20,
+        token,
+      });
+
+      if (cancelled) return;
+
+      setRecommendations(
+        Array.isArray(data?.items) ? data.items : []
+      );
+    } catch (error) {
+      if (cancelled) return;
+
+      setRecommendations([]);
+      setRecommendationsError(error);
+    } finally {
+      if (!cancelled) {
+        setRecommendationsLoading(false);
+      }
+    }
+  }
+
+  fetchRecommendations();
+
+  return () => {
+    cancelled = true;
+  };
+}, [token]);
   useEffect(() => {
     let cancelled = false;
 
