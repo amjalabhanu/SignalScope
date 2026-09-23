@@ -14,8 +14,8 @@ function ExternalIcon() {
   );
 }
 
-function EvidenceItem({ document, index }) {
-  return (
+function EvidenceItem({ evidence, index }) {
+    return (
     <li className="flex gap-3.5 py-3 first:pt-0">
       <span className="mt-0.5 shrink-0 font-mono text-[11px] font-bold tabular-nums" style={{ color: VERIFIED }}>
         [{String(index + 1).padStart(2, "0")}]
@@ -23,16 +23,16 @@ function EvidenceItem({ document, index }) {
 
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold" style={{ color: TEXT }}>
-          {document.title || "Untitled source"}
+          {evidence.title || "Untitled source"}
         </p>
 
         <p className="mt-0.5 font-mono text-[11px] uppercase tracking-wide" style={{ color: MUTED }}>
-          {document.source || "Unknown source"}
+          {evidence.source || "Unknown source"}
         </p>
 
-        {document.url ? (
+        {evidence.url ? (
           <a
-            href={document.url}
+            href={evidence.url}
             target="_blank"
             rel="noreferrer"
             className="mt-1.5 inline-flex items-center gap-1 font-mono text-[11px] font-bold hover:underline"
