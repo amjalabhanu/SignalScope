@@ -13,6 +13,14 @@ from app.schemas.entity import EntityResponse, EntitySearchResponse
 from app.models.document import Document
 from app.models.document_entity import DocumentEntity
 from app.schemas.related import RelatedEntityResponse
+from app.schemas.intelligence import (
+    EntityEventsResponse,
+    EntityIntelligenceResponse,
+)
+from app.services.entity_intelligence import (
+    get_entity_events,
+    get_related_entities as get_related_entities_service,
+)
 
 
 router = APIRouter(prefix="/entities", tags=["entities"])
@@ -116,6 +124,87 @@ def search_entities(
         "page": page,
         "limit": limit,
         "total": total,
+    }
+
+@router.get(
+    "/{entity_id}/events",
+    response_model=EntityEventsResponse,
+)
+def get_entity_event_history(
+    entity_id: UUID,
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+    event_type: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    entity = db.get(Entity, entity_id)
+
+    if entity is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Entity not found",
+        )
+
+    return get_entity_events(
+        db=db,
+        entity_id=entity_id,
+        page=page,
+        limit=limit,
+        event_type=event_type,
+    )
+
+@router.get(
+    "/{entity_id}/intelligence",
+    response_model=EntityIntelligenceResponse,
+)
+def get_entity_intelligence(
+    entity_id: UUID,
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+    event_type: str | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    entity = db.get(Entity, entity_id)
+
+    if entity is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Entity not found",
+        )
+
+    subscription_statement = select(Subscription.id).where(
+        Subscription.user_id == current_user.id,
+        Subscription.entity_id == entity_id,
+    )
+
+    is_subscribed = (
+        db.scalar(subscription_statement) is not None
+    )
+
+    entity_response = build_entity_response(
+        entity,
+        is_subscribed=is_subscribed,
+    )
+
+    events = get_entity_events(
+        db=db,
+        entity_id=entity_id,
+        page=page,
+        limit=limit,
+        event_type=event_type,
+    )
+
+    related_entities = get_related_entities_service(
+        db=db,
+        entity_id=entity_id,
+    )
+
+    return {
+        "entity": entity_response,
+        "events": events,
+        "related_entities": related_entities,
     }
 
 @router.get(
