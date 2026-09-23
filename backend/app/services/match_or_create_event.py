@@ -8,7 +8,7 @@ from app.services.event_types import normalize_event_type
 
 def match_or_create_event(
     db_session,
-    product_entity_id,
+    primary_entity_id,
     event_type,
     summary,
 ):
@@ -20,7 +20,7 @@ def match_or_create_event(
         select(Event)
         .where(
             Event.event_type == canonical_event_type,
-            Event.primary_entity_id == product_entity_id,
+            Event.primary_entity_id == primary_entity_id,
             Event.detected_at >= cutoff,
         )
         .order_by(Event.detected_at.desc())
@@ -33,7 +33,7 @@ def match_or_create_event(
 
     event = Event(
         event_type=canonical_event_type,
-        primary_entity_id=product_entity_id,
+        primary_entity_id=primary_entity_id,
         ai_summary=summary,
     )
 

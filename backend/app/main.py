@@ -10,6 +10,7 @@ from app.routers.auth import router as auth_router
 from app.routers.subscriptions import router as subscriptions_router
 from app.routers.feed import router as feed_router
 from app.routers.recommendations import router as recommendations_router
+from app.routers.interpretations import router as interpretations_router
 
 
 app = FastAPI(title="SignalScope")
@@ -36,3 +37,4 @@ app.include_router(auth_router)
 app.include_router(subscriptions_router)
 app.include_router(feed_router)
 app.include_router(recommendations_router)
+app.include_router(interpretations_router)

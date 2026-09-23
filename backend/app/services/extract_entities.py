@@ -1,13 +1,11 @@
 import json
 
-from google import genai
-
-from app.config import settings
+from app.services.ai_client import get_gemini_client
 
 
 # Create the Gemini client using the API key from configuration.
 # The key itself is never hardcoded in this file.
-client = genai.Client(api_key=settings.GEMINI_API_KEY)
+client = get_gemini_client()
 
 
 def extract_entities(document_text: str) -> list[dict]:
