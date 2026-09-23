@@ -19,6 +19,11 @@ async function fetchJson(endpoint, resourceName, options = {}) {
       throw new Error(message);
     }
 
+    // DELETE subscription returns 204 No Content.
+    if (response.status === 204) {
+      return null;
+    }
+
     return await response.json();
   } catch (error) {
     if (error instanceof TypeError) {
@@ -49,6 +54,40 @@ export function getEntities() {
   return fetchJson("/entities", "entities");
 }
 
+// Entity discovery APIs
+
+export function searchEntities({
+  q,
+  type,
+  page = 1,
+  limit = 20,
+  token,
+}) {
+  const params = new URLSearchParams({
+    q,
+    page: String(page),
+    limit: String(limit),
+  });
+
+  if (type) {
+    params.set("type", type);
+  }
+
+  return fetchJson(
+    `/entities/search?${params.toString()}`,
+    "entity search",
+    {
+      headers: jsonHeaders(token),
+    }
+  );
+}
+
+export function getEntity(entityId, token) {
+  return fetchJson(`/entities/${entityId}`, "entity", {
+    headers: jsonHeaders(token),
+  });
+}
+
 // Authentication APIs
 
 export function registerUser({ name, email, password }) {
@@ -76,7 +115,7 @@ export function getCurrentUser(token) {
 // Subscription APIs
 
 export function getSubscriptions(token) {
-  return fetchJson("/subscriptions", "subscriptions", {
+  return fetchJson("/subscriptions/me", "subscriptions", {
     headers: jsonHeaders(token),
   });
 }
