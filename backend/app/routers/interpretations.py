@@ -4,10 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies.auth import get_current_user
+from app.models.user import User
 from app.schemas.interpretation import EventInterpretationResponse
 from app.services.event_interpretation import (
     generate_event_interpretation,
 )
+
 
 router = APIRouter(
     prefix="/events",
@@ -22,6 +25,7 @@ router = APIRouter(
 def create_event_interpretation(
     event_id: UUID,
     force_regenerate: bool = Query(default=False),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
