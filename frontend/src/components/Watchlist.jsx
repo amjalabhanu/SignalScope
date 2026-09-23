@@ -1,4 +1,4 @@
-import { SIGNAL, TEXT, TEXT_DIM, LINE, LINE_BRIGHT, MUTED, SURFACE } from "../constants/theme";
+import { SIGNAL, TEXT, TEXT_DIM, LINE, MUTED, SURFACE } from "../constants/theme";
 import ErrorPanel from "./ErrorPanel";
 
 function EntityRow({ entity, count, isSelected, onSelect }) {

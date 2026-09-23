@@ -1,4 +1,4 @@
-import { TEXT, TEXT_DIM, MUTED, VERIFIED } from "../constants/theme";
+import { TEXT, MUTED, VERIFIED } from "../constants/theme";
 
 function ExternalIcon() {
   return (
