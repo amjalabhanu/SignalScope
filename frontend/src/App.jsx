@@ -28,7 +28,7 @@ import { GLOBAL_FONT_STYLES, INK, TEXT } from "./constants/theme";
  */
 
 function App() {
-  const { token, isAuthenticated, loading } = useAuth();
+  const { token, isAuthenticated, loading, logout } = useAuth();
   const [authScreen, setAuthScreen] = useState("login");
   const [events, setEvents] = useState([]);
   const [entities, setEntities] = useState([]);
@@ -287,6 +287,7 @@ function App() {
           setSelectedEntityId(entityId);
           setSearchQuery("");
         }}
+        onLogout={logout}
       />
 
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[260px_1fr]">
