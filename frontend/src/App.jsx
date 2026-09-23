@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { getEvents, getEntities, searchEntities, getEntity, followEntity, unfollowEntity, getSubscriptions, getFeed } from "./api";
+import {
+  getEvents,
+  getEntities,
+  searchEntities,
+  getEntity,
+  followEntity,
+  unfollowEntity,
+  getSubscriptions,
+  getFeed,
+  getRecommendations,
+  getRelatedEntities,
+} from "./api";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import { useAuth } from "./auth/useAuth";
@@ -10,6 +21,7 @@ import EntityDetail from "./components/EntityDetail";
 import FilterBar from "./components/FilterBar";
 import FeedList from "./components/FeedList";
 import EmptyState from "./components/EmptyState";
+import RecommendationList from "./components/RecommendationList";
 import { GLOBAL_FONT_STYLES, INK, TEXT } from "./constants/theme";
 
 /**
@@ -41,6 +53,13 @@ function App() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(true);
   const [subscriptionsError, setSubscriptionsError] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [recommendationsError, setRecommendationsError] = useState(null);
+  const [relatedEntities, setRelatedEntities] = useState([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
+  const [relatedError, setRelatedError] = useState(null);
+  const [followingRecommendationId, setFollowingRecommendationId] = useState(null);
   const [activeView, setActiveView] = useState("home");
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState(null);
@@ -111,7 +130,39 @@ function App() {
       cancelled = true;
     };
   }, [selectedEntityId, token]);
+  useEffect(() => {
+    if (!selectedEntityId || !token) return undefined;
 
+    let cancelled = false;
+
+    async function loadRelatedEntities() {
+      setRelatedLoading(true);
+      setRelatedError(null);
+
+      try {
+        const data = await getRelatedEntities(selectedEntityId, token);
+
+        if (cancelled) return;
+
+        setRelatedEntities(Array.isArray(data) ? data : []);
+      } catch (error) {
+        if (cancelled) return;
+
+        setRelatedEntities([]);
+        setRelatedError(error);
+      } finally {
+        if (!cancelled) {
+          setRelatedLoading(false);
+        }
+      }
+    }
+
+    loadRelatedEntities();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedEntityId, token]);
   const loadFeed = useCallback(async () => {
     setEventsLoading(true);
     setEventsError(null);
@@ -194,7 +245,47 @@ function App() {
       setSubscriptionsLoading(false);
     }
   }, [token]);
+  const loadRecommendations = useCallback(async () => {
+    if (!token) {
+      setRecommendations([]);
+      setRecommendationsLoading(false);
+      return;
+    }
 
+    setRecommendationsLoading(true);
+    setRecommendationsError(null);
+
+    try {
+      const data = await getRecommendations({
+        page: 1,
+        limit: 20,
+        token,
+      });
+
+      setRecommendations(
+        Array.isArray(data?.items) ? data.items : []
+      );
+
+    } catch (error) {
+      setRecommendations([]);
+      setRecommendationsError(error);
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  }, [token]);
+  const visibleRecommendations = useMemo(() => {
+    const subscribedIds = new Set(
+      subscriptions
+        .map((subscription) => subscription.entity?.id)
+        .filter(Boolean)
+    );
+
+    return recommendations.filter(
+      (recommendation) =>
+        recommendation.entity &&
+        !subscribedIds.has(recommendation.entity.id)
+    );
+  }, [recommendations, subscriptions]);
   const handleSubscriptionToggle = async () => {
     if (!selectedEntity || !token || subscriptionLoading) return;
 
@@ -223,7 +314,31 @@ function App() {
       setSubscriptionLoading(false);
     }
   };
+  const handleRecommendationFollow = async (entityId) => {
+    if (!token || followingRecommendationId) return;
 
+    setFollowingRecommendationId(entityId);
+    setRecommendationsError(null);
+
+    try {
+      await followEntity(entityId, token);
+
+      setRecommendations((currentRecommendations) =>
+        currentRecommendations.filter(
+          (recommendation) => recommendation.entity?.id !== entityId
+        )
+      );
+
+      await loadSubscriptions();
+    } catch (error) {
+      setRecommendationsError(error);
+    } finally {
+      setFollowingRecommendationId(null);
+    }
+  };
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations]);
   useEffect(() => {
     let cancelled = false;
 
@@ -283,7 +398,7 @@ function App() {
       cancelled = true;
     };
   }, [token]);
-  
+
   const eventCountByEntity = useMemo(() => {
     const counts = {};
     events.forEach((event) => {
@@ -397,6 +512,27 @@ function App() {
         />
 
         <main>
+          {activeView === "home" && (
+            <div className="mb-8">
+              <RecommendationList
+                recommendations={visibleRecommendations}
+                loading={recommendationsLoading}
+                error={recommendationsError}
+                hasSubscriptions={subscriptions.length > 0}
+                onRetry={loadRecommendations}
+                onSelectEntity={(entityId) => {
+                  setRelatedEntities([]);
+                  setRelatedError(null);
+                  setActiveView("home");
+                  setSelectedEntityId(entityId);
+                  setSearchQuery("");
+                }}
+                onFollow={handleRecommendationFollow}
+                followingEntityId={followingRecommendationId}
+              />
+            </div>
+          )}
+
           {!eventsLoading && !eventsError && events.length > 0 && (
             <div className="mb-5 flex flex-col gap-4">
               {selectedEntityId && (
@@ -410,11 +546,37 @@ function App() {
                     onToggleSubscription={handleSubscriptionToggle}
                     onClose={() => {
                       setSelectedEntityId(null);
+                      setRelatedEntities([]);
+                      setRelatedError(null);
                       setSubscriptionError(null);
                     }}
                     onRetry={() => {
                       setSelectedEntityId(null);
                       setTimeout(() => setSelectedEntityId(selectedEntityId), 0);
+                    }}
+                    relatedEntities={relatedEntities}
+                    relatedLoading={relatedLoading}
+                    relatedError={relatedError}
+                    onRetryRelated={() => {
+                      if (!selectedEntityId || !token) return;
+
+                      setRelatedError(null);
+
+                      getRelatedEntities(selectedEntityId, token)
+                        .then((data) => {
+                          setRelatedEntities(Array.isArray(data) ? data : []);
+                        })
+                        .catch((error) => {
+                          setRelatedEntities([]);
+                          setRelatedError(error);
+                        });
+                    }}
+                    onSelectRelatedEntity={(entityId) => {
+                      setRelatedEntities([]);
+                      setRelatedError(null);
+                      setActiveView("home");
+                      setSelectedEntityId(entityId);
+                      setSearchQuery("");
                     }}
                   />
                 </section>
@@ -435,56 +597,56 @@ function App() {
             </div>
           )}
 
-         
+
           {activeView === "explore" ? (
-  exploreError && !exploreLoading ? (
-    <FeedList
-      events={[]}
-      loading={false}
-      error={exploreError}
-      onRetry={loadExploreEvents}
-      onEntityClick={setSelectedEntityId}
-    />
-  ) : (
-    <FeedList
-      events={exploreEvents}
-      loading={exploreLoading}
-      error={null}
-      onEntityClick={setSelectedEntityId}
-    />
-  )
-) : eventsError && !eventsLoading ? (
-  <FeedList
-    events={[]}
-    loading={false}
-    error={eventsError}
-    onRetry={loadFeed}
-    onEntityClick={setSelectedEntityId}
-  />
-) : events.length === 0 && !eventsLoading ? (
-  <EmptyState
-    title="No signals yet"
-    description="SignalScope hasn't detected anything from your sources. New signals will appear here as soon as they're found."
-  />
-) : filteredEvents.length === 0 && !eventsLoading ? (
-  <EmptyState
-    title="Nothing matches"
-    description="Try a different search term or clear your filters."
-    actionLabel="Clear filters"
-    onAction={clearFilters}
-  />
-) : (
-  <FeedList
-    events={filteredEvents}
-    loading={eventsLoading}
-    error={null}
-    hasMore={feedHasMore}
-    loadingMore={feedLoadingMore}
-    onRetry={loadFeed}
-    onLoadMore={loadMoreFeed}
-    onEntityClick={setSelectedEntityId}
-  />
-)}
+            exploreError && !exploreLoading ? (
+              <FeedList
+                events={[]}
+                loading={false}
+                error={exploreError}
+                onRetry={loadExploreEvents}
+                onEntityClick={setSelectedEntityId}
+              />
+            ) : (
+              <FeedList
+                events={exploreEvents}
+                loading={exploreLoading}
+                error={null}
+                onEntityClick={setSelectedEntityId}
+              />
+            )
+          ) : eventsError && !eventsLoading ? (
+            <FeedList
+              events={[]}
+              loading={false}
+              error={eventsError}
+              onRetry={loadFeed}
+              onEntityClick={setSelectedEntityId}
+            />
+          ) : events.length === 0 && !eventsLoading ? (
+            <EmptyState
+              title="No signals yet"
+              description="SignalScope hasn't detected anything from your sources. New signals will appear here as soon as they're found."
+            />
+          ) : filteredEvents.length === 0 && !eventsLoading ? (
+            <EmptyState
+              title="Nothing matches"
+              description="Try a different search term or clear your filters."
+              actionLabel="Clear filters"
+              onAction={clearFilters}
+            />
+          ) : (
+            <FeedList
+              events={filteredEvents}
+              loading={eventsLoading}
+              error={null}
+              hasMore={feedHasMore}
+              loadingMore={feedLoadingMore}
+              onRetry={loadFeed}
+              onLoadMore={loadMoreFeed}
+              onEntityClick={setSelectedEntityId}
+            />
+          )}
         </main>
       </div>
     </div>

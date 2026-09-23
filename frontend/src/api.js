@@ -148,3 +148,28 @@ export function getFeed({
     headers: jsonHeaders(token),
   });
 }
+
+export function getRelatedEntities(entityId, token) {
+  return fetchJson(
+    `/entities/${entityId}/related`,
+    "related entities",
+    {
+      headers: jsonHeaders(token),
+    }
+  );
+}
+
+export function getRecommendations({ page = 1, limit = 20, token }) {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  return fetchJson(
+    `/recommendations?${params.toString()}`,
+    "recommendations",
+    {
+      headers: jsonHeaders(token),
+    }
+  );
+}
