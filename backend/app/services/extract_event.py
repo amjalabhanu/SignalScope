@@ -1,15 +1,13 @@
 import json
 import logging
 
-from google import genai
-
-from app.config import settings
+from app.services.ai_client import get_gemini_client
 from app.services.event_summary import normalize_event_summary
 
 
 logger = logging.getLogger(__name__)
 
-client = genai.Client(api_key=settings.GEMINI_API_KEY)
+client = get_gemini_client()
 
 
 def extract_event(document_text, linked_entities):

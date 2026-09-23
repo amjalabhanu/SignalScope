@@ -8,6 +8,7 @@ from app.models.document_entity import DocumentEntity
 from app.models.entity import Entity
 from app.models.event import Event
 from app.models.event_evidence import EventEvidence
+from app.services.event_provenance import build_event_provenance
 
 
 def get_entity_events(
@@ -66,33 +67,32 @@ def get_entity_events(
 
     evidence_by_event = {}
 
+
     for event_id, document in evidence_rows:
-        evidence_by_event.setdefault(event_id, []).append(
-            {
-                "title": document.raw_title,
-                "source": document.source_name,
-                "url": document.source_url,
-                "published_at": document.published_at,
-            }
-        )
+        evidence_by_event.setdefault(event_id, []).append(document)
 
     entity = db.get(Entity, entity_id)
 
-    items = [
-        {
-            "id": event.id,
-            "event_type": event.event_type,
-            "entity": {
-                "id": entity.id,
-                "name": entity.name,
-                "type": entity.type,
-            },
-            "ai_summary": event.ai_summary,
-            "detected_at": event.detected_at,
-            "evidence": evidence_by_event.get(event.id, []),
-        }
-        for event in events
-    ]
+    items = []
+
+    for event in events:
+        documents = evidence_by_event.get(event.id, [])
+        provenance = build_event_provenance(documents)
+
+        items.append(
+            {
+                "id": event.id,
+                "event_type": event.event_type,
+                "entity": {
+                    "id": entity.id,
+                    "name": entity.name,
+                    "type": entity.type,
+                },
+                "ai_summary": event.ai_summary,
+                "detected_at": event.detected_at,
+                **provenance,
+            }
+        )
 
     return {
         "items": items,
@@ -101,6 +101,7 @@ def get_entity_events(
         "total": total,
         "has_more": offset + len(items) < total,
     }
+
 def get_related_entities(
     db: Session,
     entity_id: UUID,

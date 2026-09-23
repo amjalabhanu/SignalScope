@@ -11,6 +11,7 @@ from app.models.event_evidence import EventEvidence
 from app.models.subscription import Subscription
 from app.models.user import User
 from app.schemas.feed import FeedResponse
+from app.services.event_provenance import build_event_provenance
 
 
 router = APIRouter(prefix="/feed", tags=["feed"])
@@ -26,9 +27,7 @@ def get_personalized_feed(
     offset = (page - 1) * limit
 
     # Base query: events belonging to entities followed by this user.
-    base_filter = (
-        Subscription.user_id == current_user.id
-    )
+    base_filter = Subscription.user_id == current_user.id
 
     total_statement = (
         select(func.count(Event.id))
@@ -80,15 +79,7 @@ def get_personalized_feed(
 
         documents = db.scalars(evidence_statement).all()
 
-        evidence = [
-            {
-                "title": document.raw_title,
-                "source": document.source_name,
-                "url": document.source_url,
-                "published_at": document.published_at,
-            }
-            for document in documents
-        ]
+        provenance = build_event_provenance(documents)
 
         items.append(
             {
@@ -102,7 +93,7 @@ def get_personalized_feed(
                 },
                 "ai_summary": event.ai_summary,
                 "detected_at": event.detected_at,
-                "evidence": evidence,
+                **provenance,
             }
         )
 

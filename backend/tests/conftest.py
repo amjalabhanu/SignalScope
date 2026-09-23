@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.database import SessionLocal
 
 
 @pytest.fixture
@@ -46,3 +47,12 @@ def test_user(client):
             "Authorization": f"Bearer {token}",
         },
     }
+@pytest.fixture
+def db_session():
+    session = SessionLocal()
+
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()

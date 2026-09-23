@@ -103,7 +103,7 @@ def run():
             # deduplication behavior as product-launch events.
             event, created = match_or_create_event(
                 db_session=db,
-                product_entity_id=entity.id,
+                primary_entity_id=entity.id,
                 event_type="price_change",
                 summary=summary,
             )

@@ -16,6 +16,9 @@ class FeedEvidence(BaseModel):
     source: str
     url: str
     published_at: datetime | None = None
+    source_id: str
+    source_type: str | None = None
+    source_name: str
 
 
 class FeedItem(BaseModel):
@@ -25,6 +28,9 @@ class FeedItem(BaseModel):
     ai_summary: str
     detected_at: datetime
     evidence: list[FeedEvidence]
+    evidence_count: int
+    source_count: int
+    status: str
 
 
 class FeedResponse(BaseModel):
