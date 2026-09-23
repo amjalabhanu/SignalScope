@@ -1,115 +1,189 @@
 import { useState } from "react";
-import { formatDetectedAt, isRecent } from "../utils/formatters";
-import { SIGNAL, TEXT, TEXT_DIM, LINE, LINE_BRIGHT, MUTED, SURFACE, VERIFIED, getEventTypeMeta } from "../constants/theme";
+import {
+  formatDetectedAt,
+  isRecent,
+} from "../utils/formatters";
+import {
+  SIGNAL,
+  TEXT,
+  TEXT_DIM,
+  LINE,
+  MUTED,
+  SURFACE,
+  VERIFIED,
+  getEventTypeMeta,
+} from "../constants/theme";
+import {
+  normalizeEvent,
+  formatEventType,
+} from "../utils/eventUtils";
 import EvidenceItem from "./EvidenceItem";
 
 function EventCard({ event, onEntityClick }) {
   const [expanded, setExpanded] = useState(false);
 
-  const meta = getEventTypeMeta(event.event_type);
-  const evidence = Array.isArray(event.evidence) ? event.evidence : [];
-  const visibleEvidence = expanded ? evidence : evidence.slice(0, 2);
-  const hiddenCount = evidence.length - visibleEvidence.length;
-  const recent = isRecent(event.detected_at);
+  const normalizedEvent = normalizeEvent(event);
+
+  if (!normalizedEvent) {
+    return null;
+  }
+
+  const {
+    entity,
+    ai_summary: summary,
+    detected_at: detectedAt,
+    evidence,
+  } = normalizedEvent;
+
+  const eventType = normalizedEvent.event_type;
+  const meta = getEventTypeMeta(eventType);
+
+  const visibleEvidence = expanded
+    ? evidence
+    : evidence.slice(0, 2);
+
+  const hiddenCount =
+    evidence.length - visibleEvidence.length;
+
+  const recent = isRecent(detectedAt);
 
   return (
     <article
-      className="overflow-hidden rounded-md transition-colors hover:border-[color:var(--line-bright)]"
-      style={{ border: `1px solid ${LINE}`, background: SURFACE, "--line-bright": LINE_BRIGHT }}
+      className="overflow-hidden rounded-md border"
+      style={{
+        background: SURFACE,
+        borderColor: LINE,
+      }}
     >
-      {/* metadata strip — the "wire header" */}
-      <div
-        className="flex items-center justify-between gap-3 px-6 py-2.5"
-        style={{ background: "rgba(255,255,255,0.02)", borderBottom: `1px solid ${LINE}` }}
+      <header
+        className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3"
+        style={{
+          borderColor: LINE,
+          background: "rgba(255,255,255,0.015)",
+        }}
       >
-        <div className="flex items-center gap-2.5 font-mono text-[11px] font-bold uppercase tracking-wide">
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: meta.color || SIGNAL }}
+          >
+            {formatEventType(eventType)}
+          </span>
+
           {recent && (
             <span
-              className="h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ background: SIGNAL, boxShadow: `0 0 6px ${SIGNAL}` }}
-              aria-label="Detected in the last 24 hours"
-              title="Detected in the last 24 hours"
-            />
+              className="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em]"
+              style={{
+                color: SIGNAL,
+                background: "rgba(232,163,61,0.08)",
+              }}
+            >
+              LIVE
+            </span>
           )}
-          <span style={{ color: meta.color }}>{meta.label}</span>
         </div>
-        <span className="font-mono text-[11px]" style={{ color: MUTED }}>
-          {formatDetectedAt(event.detected_at)}
-        </span>
-      </div>
 
-      <div className="px-6 py-5 sm:px-7 sm:py-6">
-        <button
-          type="button"
-          onClick={() => {
-            if (event.entity?.id && onEntityClick) {
-              onEntityClick(event.entity.id);
-            }
-          }}
-          disabled={!event.entity?.id || !onEntityClick}
-          className="text-left font-['Fraunces'] text-[22px] font-bold leading-tight hover:underline disabled:cursor-default disabled:no-underline"
-          style={{ color: TEXT }}
+        <time
+          className="font-mono text-[10px] uppercase tracking-[0.08em]"
+          style={{ color: MUTED }}
+          dateTime={detectedAt || undefined}
         >
-          {event.entity?.name || "Unknown entity"}
-        </button>
+          {formatDetectedAt(detectedAt)}
+        </time>
+      </header>
 
-        <p className="mt-3 max-w-[68ch] text-[15px] leading-7" style={{ color: TEXT_DIM }}>
-          {event.ai_summary || "No summary available."}
-        </p>
+      <div className="px-5 py-5">
+        {entity?.name ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (entity.id && onEntityClick) {
+                onEntityClick(entity.id);
+              }
+            }}
+            disabled={!entity.id || !onEntityClick}
+            className="mb-3 text-left font-['Fraunces'] text-2xl font-semibold tracking-tight transition-opacity hover:opacity-80 disabled:cursor-default disabled:hover:opacity-100"
+            style={{ color: TEXT }}
+          >
+            {entity.name}
+          </button>
+        ) : (
+          <div
+            className="mb-3 font-['Fraunces'] text-2xl font-semibold tracking-tight"
+            style={{ color: TEXT }}
+          >
+            Unknown entity
+          </div>
+        )}
 
-        <div className="mt-5 border-t pt-4" style={{ borderColor: LINE }}>
-          {evidence.length === 0 ? (
-            <p className="font-mono text-xs" style={{ color: MUTED }}>
-              NO_EVIDENCE_ON_FILE
-            </p>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => setExpanded((prev) => !prev)}
-                aria-expanded={expanded}
-                className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wide"
+        {summary && (
+          <p
+            className="max-w-3xl text-sm leading-7"
+            style={{ color: TEXT_DIM }}
+          >
+            {summary}
+          </p>
+        )}
+
+        {evidence.length > 0 && (
+          <section
+            className="mt-5 border-t pt-4"
+            style={{ borderColor: LINE }}
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <span
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
                 style={{ color: VERIFIED }}
               >
-                Evidence
-                <span
-                  className="rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums"
-                  style={{ background: "rgba(111,180,138,0.12)", color: VERIFIED }}
-                >
-                  {evidence.length}
-                </span>
+                EVIDENCE
+              </span>
+
+              <span
+                className="rounded-full px-1.5 py-0.5 font-mono text-[9px]"
+                style={{
+                  color: VERIFIED,
+                  background: "rgba(111,180,138,0.1)",
+                }}
+              >
+                {evidence.length}
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {visibleEvidence.map((item, index) => (
+                <EvidenceItem
+                  key={`${item.url || item.title || "evidence"}-${index}`}
+                  evidence={item}
+                  index={index}
+                />
+              ))}
+            </div>
+
+            {hiddenCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setExpanded((current) => !current)}
+                className="mt-4 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-80"
+                style={{
+                  color: VERIFIED,
+                }}
+              >
+                {expanded
+                  ? "SHOW_LESS"
+                  : `SHOW_${hiddenCount}_MORE`}
               </button>
+            )}
+          </section>
+        )}
 
-              <ul className="mt-1.5 divide-y" style={{ borderColor: LINE }}>
-                {visibleEvidence.map((document, index) => (
-                  <EvidenceItem key={document.url || `${event.id}-evidence-${index}`} document={document} index={index} />
-                ))}
-              </ul>
-
-              {hiddenCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setExpanded(true)}
-                  className="mt-1.5 font-mono text-xs font-bold hover:underline"
-                  style={{ color: MUTED }}
-                >
-                  + {hiddenCount} more source{hiddenCount === 1 ? "" : "s"}
-                </button>
-              )}
-
-              {expanded && evidence.length > 2 && (
-                <button
-                  type="button"
-                  onClick={() => setExpanded(false)}
-                  className="mt-1.5 font-mono text-xs font-bold hover:underline"
-                  style={{ color: MUTED }}
-                >
-                  Show less
-                </button>
-              )}
-            </>
-          )}
-        </div>
+        {!summary && evidence.length === 0 && (
+          <p
+            className="font-mono text-[10px] uppercase tracking-[0.08em]"
+            style={{ color: MUTED }}
+          >
+            No additional signal details available.
+          </p>
+        )}
       </div>
     </article>
   );

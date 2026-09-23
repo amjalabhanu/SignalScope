@@ -12,6 +12,7 @@ import {
   getRecommendations,
   getRelatedEntities,
 } from "./api";
+import { normalizeEvents } from "./utils/eventUtils";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import { useAuth } from "./auth/useAuth";
@@ -381,7 +382,7 @@ function App() {
         token,
       });
 
-      setEvents(Array.isArray(data?.items) ? data.items : []);
+      setEvents(normalizeEvents(data?.items));
       setFeedHasMore(Boolean(data?.has_more));
     } catch (error) {
       setEventsError(error);
@@ -408,7 +409,7 @@ function App() {
         token,
       });
 
-      const newItems = Array.isArray(data?.items) ? data.items : [];
+      const newItems = normalizeEvents(data?.items);
 
       setEvents((currentEvents) => [
         ...currentEvents,
@@ -440,7 +441,7 @@ function App() {
     try {
       const data = await getEvents();
 
-      setExploreEvents(Array.isArray(data) ? data : []);
+      setExploreEvents(normalizeEvents(data));
     } catch (error) {
       setExploreError(error);
       setExploreEvents([]);
@@ -680,11 +681,7 @@ function App() {
       if (feedResult.status === "fulfilled") {
         const feed = feedResult.value;
 
-        setEvents(
-          Array.isArray(feed?.items)
-            ? feed.items
-            : []
-        );
+        setEvents(normalizeEvents(feed?.items));
 
         setFeedPage(feed?.page ?? 1);
         setFeedHasMore(Boolean(feed?.has_more));
